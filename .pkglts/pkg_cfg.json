@@ -10,7 +10,7 @@
       [
         "Guillaume Cerutti", 
         "guillaume.cerutti@inria.fr"
-      ],
+      ], 
       [
         "Hadrien Oliveri", 
         "hadrien.oliveri@inria.fr"
@@ -23,6 +23,11 @@
   "doc": {
     "description": "A set of tools to generate virtual tissues with various possible computational representations", 
     "keywords": []
+  }, 
+  "github": {
+    "owner": "{{ base.authors[0][0] }}", 
+    "project": "{{ base.pkgname }}", 
+    "url": "https://github.com/{{ github.owner }}/{{ github.project }}"
   }, 
   "license": {
     "name": "cecill-c", 

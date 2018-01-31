@@ -25,7 +25,7 @@ setup_kwds = dict(
     long_description=readme + '\n\n' + history,
     author="Guillaume Cerutti, Hadrien Oliveri, ",
     author_email="guillaume.cerutti@inria.fr, hadrien.oliveri@inria.fr, ",
-    url='',
+    url='https://github.com/Guillaume Cerutti/artificial_tissue',
     license='cecill-c',
     zip_safe=False,
 

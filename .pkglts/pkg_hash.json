@@ -1,4 +1,7 @@
 {
+  ".gitignore": {
+    "github": "MRdLys3vaDL9iwBuZQW4YB3oJ8OwaGJeAHqZDUpPSpGHl0pENcpfsckLl8SPhFIKnodXkYM41AsPFBz5QJQu0w=="
+  }, 
   "AUTHORS.rst": {
     "doc": "qG4h9V8vGpVWBIcVPEse3Pf+/k1NBjfejPyocKhVysziszIGrxOzf3ZZsmq4pmv5D/GJVMCF3tb7j7clY6qmow=="
   }, 
@@ -32,7 +35,7 @@
   }, 
   "setup.py": {
     "pysetup.call": "2wHuP94SpWKZpqOzExkQGTxnhGPgBHK3qOdPn0Ncstj5FkZ7FBGGM/inqAXaI4QLKQtTNlOUYRGSkYUWAUcf1w==", 
-    "pysetup.kwds": "+yAcsyM+RewzGGzX+djUGRyAToehM51FEo5p+3TTQ3vGa0bnzfso0IbUE1DUZ8+yOQ8PbreTNMkcgX9V/9A8cw=="
+    "pysetup.kwds": "O7TQ9BEX/eY46O5xLTRSQqRcooZrrXGmDRClY1r/krUNcHAbrROx4UeLk3CNtfu4m+zziV8T+n+zCupCtASjwA=="
   }, 
   "src/artificial_tissue/__init__.py": {
     "base": "gR33dW0qqYmsV9NSNB+DD8XmuxnC2t0mKjnMoU5728qh97fSER6MbX+3QKxpZDLByZToaAay4xhx8acxketJmA=="
