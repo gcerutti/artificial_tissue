@@ -1,0 +1,45 @@
+{
+  "_pkglts": {
+    "auto_install": true, 
+    "install_front_end": "stdout", 
+    "use_prompts": false, 
+    "version": 3
+  }, 
+  "base": {
+    "authors": [
+      [
+        "Guillaume Cerutti", 
+        "guillaume.cerutti@inria.fr"
+      ],
+      [
+        "Hadrien Oliveri", 
+        "hadrien.oliveri@inria.fr"
+      ]
+    ], 
+    "namespace": "vplants", 
+    "pkgname": "artificial_tissue", 
+    "url": null
+  }, 
+  "doc": {
+    "description": "A set of tools to generate virtual tissues with various possible computational representations", 
+    "keywords": []
+  }, 
+  "license": {
+    "name": "cecill-c", 
+    "organization": "INRIA", 
+    "project": "{{ base.pkgname }}", 
+    "year": 2015
+  }, 
+  "pysetup": {
+    "intended_versions": [
+      "27"
+    ], 
+    "require": []
+  }, 
+  "test": {}, 
+  "version": {
+    "major": 0, 
+    "minor": 1, 
+    "post": 0
+  }
+}
