@@ -82,6 +82,9 @@ target/
 .svn
 
 
+# coverage
+.coverage
+
 
 # #}
 
