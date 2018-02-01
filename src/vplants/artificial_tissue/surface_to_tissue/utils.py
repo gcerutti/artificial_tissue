@@ -116,20 +116,22 @@ def random_seeds(img, nb_seeds=100, density=None, points=None, replace=False, ve
     :param debug:
     :return:
     """
-    assert nb_seeds > 0, "Illegal number of seeds."
+    assert nb_seeds > 0, "Illegal number of seeds: " + str(nb_seeds)
     logging.getLogger().setLevel(logging.INFO if verbose else logging.DEBUG if debug else logging.ERROR)
 
     if points is None:
         assert img is not None
-        points = filter(lambda p: img[p],
-                        list(product(range(img.shape[0]), range(img.shape[1]), range(img.shape[2]))))
+        points = list(product(range(img.shape[0]), range(img.shape[1]), range(img.shape[2])))
+        points = filter(lambda p: img[p], points)
 
     vol = len(points)
     logging.info("Finding " + str(nb_seeds) + " random seeds in " + str(vol) + " voxels.")
 
     res_img = empty_image_like(img)
     logging.info("Uniform density of seeds." if density is None else "Non-uniform density of seeds")
-    seeds = np.asarray(points)[np.random.choice(len(points), nb_seeds, replace=replace, p=density)]
+
+    rand_indices = np.random.choice(a=len(points), size=nb_seeds, replace=replace, p=density)
+    seeds = np.asarray(points)[rand_indices]
 
     labels = np.uint16(np.arange(nb_seeds) + 1)
     res_img[tuple(np.asarray(seeds).T)] = labels

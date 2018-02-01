@@ -61,8 +61,8 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
     # Random seeds
     logging.info("Choosing initial seeds.")
     density = None  # TODO
-    seeds, labels, seed_img = random_seeds(mask, nb_seeds=nbcells, density=density, points=points,
-                                           verbose=verbose, debug=debug)
+    seeds, labels, seed_img = random_seeds(img=mask, nb_seeds=nbcells, density=density, points=points,
+                                           verbose=verbose, debug=debug, replace=False)
     if save and output is not None:
         logging.info("Saving image to " + output)
         seed_path = os.path.join(output, "seeds.inr")
@@ -89,12 +89,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help='path to input mesh', required=True)
     parser.add_argument('-o', '--output', help='path to output files directory', default="./output")
-    parser.add_argument('-n', '--nbcells', help='Number of cells', default=100)
-    parser.add_argument('--step', help='Maximal number of steps for CVT', default=1e9)
+    parser.add_argument('-n', '--nbcells', help='Number of cells', default=100, type=int)
+    parser.add_argument('--step', help='Maximal number of steps for CVT', default=1e9, type=int)
     parser.add_argument('-v', '--verbose', default=False, action='store_true', help='verbose')
     parser.add_argument('-d', '--debug', default=False, action='store_true', help='debug')
     parser.add_argument('-s', '--save', default=False, action='store_true', help='save output image to file')
-    parser.add_argument('--voxelsize', help='Voxel size', default=[.025, .025, .025], nargs=3)
+    parser.add_argument('--voxelsize', help='Voxel size', default=[.025, .025, .025], nargs=3, type=float)
     parser.add_argument('-m', '--method', help='Method for CVT [\'lloyd\', \'mcqueen\']', default='lloyd')
 
     args = parser.parse_args()
