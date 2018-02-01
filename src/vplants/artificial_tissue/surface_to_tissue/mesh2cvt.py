@@ -73,12 +73,12 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
     voronoi_img = voronoi(seeds, labels, mask=mask, points=points, verbose=verbose, debug=debug)
     if save and output is not None:
         logging.info("Saving image to " + output)
-        voronoi_path = os.path.join(output, "seeds.inr")
+        voronoi_path = os.path.join(output, "voronoi.inr")
         imsave(voronoi_path, voronoi_img)
 
     # CVT
     logging.info("Computing CENTROIDAL VORONOI TESSELLATION")
-    centroid_img, cvt_img = cvt(mask=mask, seeds=seeds, labels=labels, res_path=os.path.join(output, "mesh_to_cvt_image.inr"),
+    centroid_img, cvt_img = cvt(mask=mask, seeds=seeds, labels=labels, res_path=os.path.join(output, "cvt.inr"),
                             steps=max_step, points=points, method=method, voronoi_img=voronoi_img, save=save, verbose=verbose,
                                 debug=debug)
 
