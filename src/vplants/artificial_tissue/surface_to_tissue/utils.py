@@ -33,6 +33,7 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
     :return:
     """
 
+    from vtk import VTK_MAJOR_VERSION as vtk_version
     from vtk import vtkImageData, vtkPolyDataToImageStencil, vtkImageStencil, VTK_UNSIGNED_CHAR
     from vtk.util.numpy_support import vtk_to_numpy
     from openalea.cellcomplex.property_topomesh.triangular_mesh import topomesh_to_triangular_mesh
@@ -61,21 +62,33 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
 
     white_image.SetOrigin(origin)
     logging.info("Image origin: " + str(white_image.GetOrigin()))
-    white_image.AllocateScalars(VTK_UNSIGNED_CHAR, 1)
+    if vtk_version < 6:
+        white_image.SetScalarTypeToUnsignedChar()
+        white_image.SetNumberOfScalarComponents(1)
+        white_image.AllocateScalars()
+    else:
+        white_image.AllocateScalars(VTK_UNSIGNED_CHAR, 1)
 
     count = white_image.GetNumberOfPoints()
     for i in range(count):
         white_image.GetPointData().GetScalars().SetTuple1(i, 255)
 
     pol2stenc = vtkPolyDataToImageStencil()
-    pol2stenc.SetInputData(polydata)
+    if vtk_version < 6:
+        pol2stenc.SetInput(polydata)
+    else:
+        pol2stenc.SetInputData(polydata)
     pol2stenc.SetOutputOrigin(origin)
     pol2stenc.SetOutputSpacing(voxelsize)
     pol2stenc.SetOutputWholeExtent(white_image.GetExtent())
 
     imgstenc = vtkImageStencil()
-    imgstenc.SetInputData(white_image)
-    imgstenc.SetStencilConnection(pol2stenc.GetOutputPort())
+    if vtk_version < 6:
+        imgstenc.SetInput(white_image)
+        imgstenc.SetStencil(pol2stenc.GetOutput())
+    else:   
+        imgstenc.SetInputData(white_image)
+        imgstenc.SetStencilConnection(pol2stenc.GetOutputPort())
     imgstenc.ReverseStencilOff()
     imgstenc.SetBackgroundValue(0)
     imgstenc.Update()
