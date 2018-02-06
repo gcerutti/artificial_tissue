@@ -40,8 +40,7 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
 
     logging.getLogger().setLevel(logging.INFO if verbose else logging.DEBUG if debug else logging.ERROR)
 
-    mesh, matching = topomesh_to_triangular_mesh(mesh, degree=3, coef=1.0, property_name=None,
-                                                 property_degree=None)
+    mesh, matching = topomesh_to_triangular_mesh(mesh, degree=3, coef=1.0, property_name=None, property_degree=None)
     polydata = mesh._repr_vtk_()
     bounds = polydata.GetBounds()
 
@@ -116,6 +115,7 @@ def random_seeds(img, nb_seeds=100, density=None, points=None, replace=False, ve
     :param debug:
     :return:
     """
+
     assert nb_seeds > 0, "Illegal number of seeds: " + str(nb_seeds)
     logging.getLogger().setLevel(logging.INFO if verbose else logging.DEBUG if debug else logging.ERROR)
 
@@ -124,17 +124,17 @@ def random_seeds(img, nb_seeds=100, density=None, points=None, replace=False, ve
         points = list(product(range(img.shape[0]), range(img.shape[1]), range(img.shape[2])))
         points = filter(lambda p: img[p], points)
 
-    vol = len(points)
-    logging.info("Finding " + str(nb_seeds) + " random seeds in " + str(vol) + " voxels.")
+    volume = len(points)
+    logging.info("Generating " + str(nb_seeds) + " random seeds in " + str(volume) + " voxels.")
 
     res_img = empty_image_like(img)
     logging.info("Uniform density of seeds." if density is None else "Non-uniform density of seeds")
 
     rand_indices = np.random.choice(a=len(points), size=nb_seeds, replace=replace, p=density)
-    seeds = np.asarray(points)[rand_indices]
+    seeds = np.array(points)[rand_indices]
 
     labels = np.uint16(np.arange(nb_seeds) + 1)
-    res_img[tuple(np.asarray(seeds).T)] = labels
+    res_img[tuple(np.array(seeds).T)] = labels
 
     return seeds, labels, res_img
 
@@ -168,9 +168,9 @@ def voronoi(seeds, labels, mask=None, points=None, verbose=False, debug=False):
 def centroids(img, labels, bg=0):
     """
 
-    :param img:
+    :param img: input labelled image
     :param labels:
-    :param bg:
+    :param bg: background value
     :return:
     """
     label_colors = {}
@@ -194,7 +194,7 @@ def centroids(img, labels, bg=0):
 def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=None,
         method="lloyd", intermediary_step=5e6, verbose=False, debug=False, save=False):
     """
-    Centroidal Voronoi tesselation
+    Centroidal Voronoi tessellation
 
     :param mask:
     :param seeds:
@@ -208,63 +208,67 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
     :return:
     """
 
-    from openalea.image.serial.all import imsave
-    logging.getLogger().setLevel(logging.INFO if verbose else logging.DEBUG if debug else logging.ERROR)
-
-    assert method in ['lloyd', 'macqueen']
-
-    logging.info("Centroidal Voronoi tessellation.")
-    logging.info("Method: " + method)
-
+    assert method in ['lloyd', 'macqueen'], "Illegal method argument " + method
     assert steps >= 0, "Illegal number of steps"
+    from openalea.image.serial.all import imsave
 
-    residual = lambda s1, s2: max(np.linalg.norm(np.asarray(s1) - np.asarray(s2), axis=0))
+    logging.getLogger().setLevel(logging.INFO if verbose else logging.DEBUG if debug else logging.ERROR)
+    logging.info("Centroidal Voronoi tessellation. Method: " + method)
+
+    def residual(s1, s2):
+        return max(np.linalg.norm(np.asarray(s1) - np.asarray(s2), axis=0))
+
     seeds = np.double(seeds)
 
     if method == "lloyd":
 
         assert voronoi_img is not None
         prev_seeds = seeds
-        s = 0
-        while s < steps:
-            s += 1
+        for step in range(int(steps)):
             seeds = centroids(voronoi_img, labels)
             res = residual(seeds, prev_seeds)
-            logging.info("CVT step " + str(s) + " --> Residual:" + str(res))
+            logging.info("CVT step " + str(step) + " --> Residual:" + str(res))
             voronoi_img = voronoi(seeds, labels, mask, points, verbose=verbose, debug=debug)
             prev_seeds = seeds
+
+            # Intermediary saving.
             if res_path is not None and save:
                 imsave(res_path, voronoi_img)
-            if np.isclose(0, res):
-                logging.info("Exiting")
+
+            if np.isclose(0, res):  # TODO specify convergence threshold
+                logging.info("Lloyd algorithm converged.")
                 break
 
     elif method == "macqueen":
 
         # FIXME: does not converge
+        raise NotImplementedError()
 
         points = np.double(points)
         nb_seeds = len(seeds)
         memory = dict(zip(range(nb_seeds), [0] * nb_seeds))
         recompute_voronoi = True
-        s = 0
-        while s < steps:
-            if not s % (intermediary_step / 5):
-                logging.info("CVT step " + str(s))
-            s += 1
+        step = 0
+        while step < steps:
+            if not step % (intermediary_step / 5):
+                logging.info("CVT step " + str(step))
+            step += 1
             random_point = points[np.random.choice(len(points))]
             closest = np.argmin(np.linalg.norm(seeds - random_point, axis=1))
             memory[closest] += 1
             seeds[closest] = (random_point + memory[closest] * np.asarray(seeds[closest])) / (memory[closest] + 1)
-            if not s % intermediary_step and s:
+
+            # Intermediary saving.
+            if not step % intermediary_step and step:
                 voronoi_img = voronoi(seeds, labels, mask, np.uint16(points))
                 c = centroids(voronoi_img, labels)
                 res = residual(seeds, c)
-                logging.info("CVT step " + str(s) + " --> Residual:" + str(res))
+                logging.info("CVT step " + str(step) + " --> Residual:" + str(res))
 
                 if res_path is not None and save:
                     imsave(res_path, voronoi_img)
-                if np.isclose(0, res):
+
+                if np.isclose(0, res):  # TODO specify convergence threshold
                     recompute_voronoi = False
                     break
 

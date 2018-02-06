@@ -16,24 +16,34 @@
 ###############################################################################
 
 import argparse
+from itertools import product
 import os
 from utils import *
 from openalea.image.serial.all import imread, imsave
 from openalea.mesh.property_topomesh_io import read_ply_property_topomesh
 
-
 def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, nbcells=100, method="lloyd",
                       verbose=False, debug=False, save=False):
     """
 
-    :param input:
-    :param output:
-    :param voxelsize:
-    :param method:
-    :param verbose:
-    :param debug:
-    :return:
+    Args:
+        input: Path to PLY mesh file.
+        output: Path to directory where intermediary and final images are stored. Default is current directory.
+        voxelsize: Voxel size. Default is (.5,.5,.5).
+        max_step: Maximum step for the centroidal Voronoi tessellation. Default is 1e9
+        nbcells: Number of cells. Default is 100. # XXX What happens if the number of cells is higher than the number of voxels encompassed by the mesh ?
+        method: Method to compute the centroidal Voronoi tessellation: 'lloyd' or 'mcqueen'. Default is 'lloyd'. #FIXME McQueen does not seem to converge. Bug?
+        verbose: Verbose mode. Default is False
+        debug: Debug mode. Default is False
+        save: Save images. Default is False
+
+    Returns: CVT image
+
     """
+
+    def save_img(path, img):
+        logging.info("Saving image to " + path)
+        imsave(path, voronoi_img)
 
     assert os.path.exists(input), "Input file: " + input + " does not exist."
     assert method in ["lloyd", "mcqueen"], "Wrong method."
@@ -42,42 +52,35 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
         os.makedirs(output)
 
     logging.getLogger().setLevel(logging.INFO if verbose else logging.DEBUG if debug else logging.ERROR)
-    logging.info("Generating image from mesh.")
+    logging.info("### Generating cellularized image from mesh. ###")
 
     # Loading mesh
     logging.info("Loading mesh")
     mesh = read_ply_property_topomesh(input)
 
-    # Binarized image
+    # Binarizing image
     logging.info("Rasterizing mesh to binary image.")
     mask = topomesh_to_binary_image(mesh=mesh, voxelsize=voxelsize, verbose=verbose, debug=debug)
-    if save and output is not None:
-        logging.info("Saving image to " + output)
-        bin_path = os.path.join(output, "bin.inr")
-        imsave(bin_path, mask)
-    from itertools import product
+
+    if save and output is not None: save_img(os.path.join(output, "bin.inr"), mask)
+
     points = filter(lambda p: mask[p], list(product(range(mask.shape[0]), range(mask.shape[1]), range(mask.shape[2]))))
 
-    # Random seeds
+    # Generating random seeds
     logging.info("Choosing initial seeds.")
     density = None  # TODO
     seeds, labels, seed_img = random_seeds(img=mask, nb_seeds=nbcells, density=density, points=points,
                                            verbose=verbose, debug=debug, replace=False)
-    if save and output is not None:
-        logging.info("Saving image to " + output)
-        seed_path = os.path.join(output, "seeds.inr")
-        imsave(seed_path, seed_img)
+    if save and output is not None: save_img(os.path.join(output, "seeds.inr"), seed_img)
 
     # Initial Voronoi partioning
     logging.info("Initializing Voronoi diagram.")
     voronoi_img = voronoi(seeds, labels, mask=mask, points=points, verbose=verbose, debug=debug)
-    if save and output is not None:
-        logging.info("Saving image to " + output)
-        voronoi_path = os.path.join(output, "voronoi.inr")
-        imsave(voronoi_path, voronoi_img)
+    if save and output is not None: save_img(os.path.join(output, "voronoi.inr"), voronoi_img)
 
-    # CVT
-    logging.info("Computing CENTROIDAL VORONOI TESSELLATION")
+
+    # Computing a centroidal Voronoi tessellation.
+    logging.info("Computing a centroidal Voronoi tessellation.")
     centroid_img, cvt_img = cvt(mask=mask, seeds=seeds, labels=labels, res_path=os.path.join(output, "cvt.inr"),
                             steps=max_step, points=points, method=method, voronoi_img=voronoi_img, save=save, verbose=verbose,
                                 debug=debug)
@@ -85,10 +88,15 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
     return cvt_img
 
 def main():
+    """
+
+    Returns:
+
+    """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help='path to input mesh', required=True)
-    parser.add_argument('-o', '--output', help='path to output files directory', default="./output")
+    parser.add_argument('-i', '--input', help='Path to input mesh', required=True)
+    parser.add_argument('-o', '--output', help='Path to output files directory', default="./output")
     parser.add_argument('-n', '--nbcells', help='Number of cells', default=100, type=int)
     parser.add_argument('--step', help='Maximal number of steps for CVT', default=1e9, type=int)
     parser.add_argument('-v', '--verbose', default=False, action='store_true', help='verbose')
