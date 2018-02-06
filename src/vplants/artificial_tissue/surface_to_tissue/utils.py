@@ -184,7 +184,7 @@ def centroids(img, labels, bg=0):
                         label_colors[img[x, y, z]] += [[x, y, z]]
 
     centroids = {}
-    for l in labels:
+    for l in labels:sf
         pos = label_colors[l]
         centroids[l] = np.sum(pos, axis=0) / float(len(pos))
 
