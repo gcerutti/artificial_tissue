@@ -48,7 +48,7 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
     logging.info("Initializing image")
     white_image = vtkImageData()
     white_image.SetSpacing(voxelsize)
-    dim = [int(np.ceil((bounds[i * 2 + 1] - bounds[i * 2]) / voxelsize[i])) for i in range(3)]
+    dim = [int(np.ceil((bounds[i * 2 + 1] - bounds[i * 2]) / voxelsize[i])) for i in xrange(3)]
 
     # FIXME: does not work if dimensions are different
     dim = [np.amax(dim)] * 3
@@ -56,8 +56,8 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
     logging.info("Image dimension: " + str(dim))
     white_image.SetDimensions(dim)
     white_image.SetExtent(-1, dim[0] - 1, -1, dim[1] - 1, -1, dim[2] - 1)
-    origin = [bounds[i * 2] for i in range(3)]
-    # origin = [.5 *(bounds[i * 2]+bounds[i * 2 + 1]) for i in range(3)]
+    origin = [bounds[i * 2] for i in xrange(3)]
+    # origin = [.5 *(bounds[i * 2]+bounds[i * 2 + 1]) for i in xrange(3)]
 
     white_image.SetOrigin(origin)
     logging.info("Image origin: " + str(white_image.GetOrigin()))
@@ -69,7 +69,7 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
         white_image.AllocateScalars(VTK_UNSIGNED_CHAR, 1)
 
     count = white_image.GetNumberOfPoints()
-    for i in range(count):
+    for i in xrange(count):
         white_image.GetPointData().GetScalars().SetTuple1(i, 255)
 
     pol2stenc = vtkPolyDataToImageStencil()
@@ -176,9 +176,9 @@ def centroids(img, labels, bg=0):
 
     print "Computing centroids."
     label_colors = {}
-    for x in range(len(img)):
-        for y in range(len(img[x])):
-            for z in range(len(img[x, y])):
+    for x in xrange(len(img)):
+        for y in xrange(len(img[x])):
+            for z in xrange(len(img[x, y])):
                 if img[x, y, z] != bg:
                     if img[x, y, z] not in label_colors:
                         label_colors[img[x, y, z]] = [[x, y, z]]
