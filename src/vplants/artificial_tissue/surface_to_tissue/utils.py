@@ -173,6 +173,8 @@ def centroids(img, labels, bg=0):
     :param bg: background value
     :return:
     """
+
+    print "Computing centroids."
     label_colors = {}
     for x in range(len(img)):
         for y in range(len(img[x])):
@@ -184,7 +186,7 @@ def centroids(img, labels, bg=0):
                         label_colors[img[x, y, z]] += [[x, y, z]]
 
     centroids = {}
-    for l in labels:sf
+    for l in labels:
         pos = label_colors[l]
         centroids[l] = np.sum(pos, axis=0) / float(len(pos))
 
@@ -224,7 +226,7 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
 
         assert voronoi_img is not None
         prev_seeds = seeds
-        for step in range(int(steps)):
+        for step in xrange(int(steps)):
             seeds = centroids(voronoi_img, labels)
             res = residual(seeds, prev_seeds)
             logging.info("CVT step " + str(step) + " --> Residual:" + str(res))
@@ -248,11 +250,9 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
         nb_seeds = len(seeds)
         memory = dict(zip(range(nb_seeds), [0] * nb_seeds))
         recompute_voronoi = True
-        step = 0
-        while step < steps:
+        for step in xrange(len(steps)):
             if not step % (intermediary_step / 5):
                 logging.info("CVT step " + str(step))
-            step += 1
             random_point = points[np.random.choice(len(points))]
             closest = np.argmin(np.linalg.norm(seeds - random_point, axis=1))
             memory[closest] += 1

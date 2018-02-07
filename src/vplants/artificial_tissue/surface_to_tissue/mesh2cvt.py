@@ -16,7 +16,6 @@
 ###############################################################################
 
 import argparse
-from itertools import product
 import os
 from utils import *
 from openalea.image.serial.all import imread, imsave
@@ -83,7 +82,7 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
     logging.info("Computing a centroidal Voronoi tessellation.")
     centroid_img, cvt_img = cvt(mask=mask, seeds=seeds, labels=labels, res_path=os.path.join(output, "cvt.inr"),
                             steps=max_step, points=points, method=method, voronoi_img=voronoi_img, save=save, verbose=verbose,
-                                debug=debug)
+                            debug=debug)
 
     return cvt_img
 
