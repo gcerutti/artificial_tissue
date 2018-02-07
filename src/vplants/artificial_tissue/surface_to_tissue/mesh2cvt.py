@@ -42,7 +42,7 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
 
     def save_img(path, img):
         logging.info("Saving image to " + path)
-        imsave(path, voronoi_img)
+        imsave(path, img)
 
     assert os.path.exists(input), "Input file: " + input + " does not exist."
     assert method in ["lloyd", "mcqueen"], "Wrong method."
@@ -60,9 +60,9 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
     # Binarizing image
     logging.info("Rasterizing mesh to binary image.")
     mask = topomesh_to_binary_image(mesh=mesh, voxelsize=voxelsize, verbose=verbose, debug=debug)
-
     if save and output is not None: save_img(os.path.join(output, "bin.inr"), mask)
 
+    # Coordinates of voxels (without the background)
     points = filter(lambda p: mask[p], list(product(range(mask.shape[0]), range(mask.shape[1]), range(mask.shape[2]))))
 
     # Generating random seeds
@@ -76,7 +76,6 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
     logging.info("Initializing Voronoi diagram.")
     voronoi_img = voronoi(seeds, labels, mask=mask, points=points, verbose=verbose, debug=debug)
     if save and output is not None: save_img(os.path.join(output, "voronoi.inr"), voronoi_img)
-
 
     # Computing a centroidal Voronoi tessellation.
     logging.info("Computing a centroidal Voronoi tessellation.")

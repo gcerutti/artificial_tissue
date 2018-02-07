@@ -270,6 +270,7 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
 
                 if np.isclose(0, res):  # TODO specify convergence threshold
                     recompute_voronoi = False
+                    logging.info("McQueen algorithm converged.")
                     break
 
         if recompute_voronoi:
