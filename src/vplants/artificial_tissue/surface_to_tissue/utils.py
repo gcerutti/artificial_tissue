@@ -165,6 +165,23 @@ def voronoi(seeds, labels, mask=None, points=None, verbose=False, debug=False):
     return res_img
 
 
+def voronoi_image(seeds, labels, mask, seed_tensors=None, verbose=False, debug=False):
+    """
+    """
+    
+    voxelsize = np.array(mask.voxelsize) if hasattr(mask,'voxelsize') else np.ones(3,float)
+    
+    if seed_tensors is None:
+        seed_tensors = np.array([np.diag(np.ones(3)) for s in seeds])
+
+    points = np.transpose(np.mgrid[0:mask.shape[0],0:mask.shape[1],0:mask.shape[2]],(1,2,3,0))*voxelsize
+    seed_distances = np.array([np.power(np.einsum('...ij,...ij->...i', points-seed,np.einsum('...ij,...j->...i',np.linalg.inv(np.power(seed_tensor,2.)),points-seed)),0.5) for seed,seed_tensor in zip(seeds,seed_tensors)]) 
+    voronoi_img = ((mask!=0)*np.array(labels)[np.argmin(seed_distances,axis=0)]).astype(np.uint16)
+
+    return voronoi_img
+
+
+
 def centroids(img, labels, bg=0):
     """
 
