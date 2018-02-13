@@ -99,14 +99,14 @@ def main():
     parser.add_argument('--step', help='Maximal number of steps for CVT', default=1e9, type=int)
     parser.add_argument('-v', '--verbose', default=False, action='store_true', help='verbose')
     parser.add_argument('-d', '--debug', default=False, action='store_true', help='debug')
-    parser.add_argument('-s', '--save', default=False, action='store_true', help='save output image to file')
+    parser.add_argument('-ns', '--no_save', default=False, action='store_true', help='skip saving output image')
     parser.add_argument('--voxelsize', help='Voxel size', default=[.025, .025, .025], nargs=3, type=float)
     parser.add_argument('-m', '--method', help='Method for CVT [\'lloyd\', \'mcqueen\']', default='lloyd')
 
     args = parser.parse_args()
 
     mesh_to_cvt_image(input=args.input, output=args.output, method=args.method, verbose=args.verbose, debug=args.debug,
-        save=args.save, voxelsize=args.voxelsize, nbcells=args.nbcells, max_step=args.step)
+        save=not(args.no_save), voxelsize=args.voxelsize, nbcells=args.nbcells, max_step=args.step)
 
 if __name__ == "__main__":
     main()

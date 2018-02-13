@@ -7,7 +7,7 @@
 #
 #       File author(s): Hadrien Oliveri <hadrien.oliveri@inria.fr>
 #
-#       File contributor(s): Hadrien Oliveri <hadrien.oliveri@inria.fr>
+#       File contributor(s): Hadrien Oliveri <hadrien.oliveri@inria.fr>, Guillaume Cerutti <guillaume.cerutti@inria.fr>
 #
 #       Distributed under the Cecill-C License.
 #       See accompanying file LICENSE.txt or copy at
@@ -85,7 +85,7 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
     if vtk_version < 6:
         imgstenc.SetInput(white_image)
         imgstenc.SetStencil(pol2stenc.GetOutput())
-    else:   
+    else:
         imgstenc.SetInputData(white_image)
         imgstenc.SetStencilConnection(pol2stenc.GetOutputPort())
     imgstenc.ReverseStencilOff()
@@ -155,7 +155,7 @@ def voronoi(seeds, labels, mask=None, points=None, verbose=False, debug=False):
     if points is None:
         assert mask is not None and mask.shape == mask.shape
         points = filter(lambda p: mask[p],
-                        list(product(range(mask.shape[0]), range(mask.shape[1]), range(mask.shape[2]))))
+                        list(product(xrange(mask.shape[0]), xrange(mask.shape[1]), xrange(mask.shape[2]))))
 
     # KD tree for nearest point research
     nearest = cKDTree(data=seeds).query(points)[1]
@@ -165,7 +165,7 @@ def voronoi(seeds, labels, mask=None, points=None, verbose=False, debug=False):
     return res_img
 
 
-def centroids(img, labels, bg=0):
+def centroids(img, labels, bg=0, coords=None):
     """
 
     :param img: input labelled image
@@ -174,21 +174,23 @@ def centroids(img, labels, bg=0):
     :return:
     """
 
-    print "Computing centroids."
     label_colors = {}
-    for x in xrange(len(img)):
-        for y in xrange(len(img[x])):
-            for z in xrange(len(img[x, y])):
-                if img[x, y, z] != bg:
-                    if img[x, y, z] not in label_colors:
-                        label_colors[img[x, y, z]] = [[x, y, z]]
-                    else:
-                        label_colors[img[x, y, z]] += [[x, y, z]]
+
+    if coords is None:
+        assert np.ndim(img) == 3
+        l0, l1, l2 = np.shape(img)
+        coords = filter(lambda (x, y, z): img[x, y, z] != bg, product(xrange(l0), xrange(l1), xrange(l2)))
+
+    for x, y, z in coords:
+        if img[x, y, z] not in label_colors:
+            label_colors[img[x, y, z]] = [[x, y, z]]
+        else:
+            label_colors[img[x, y, z]] += [[x, y, z]]
 
     centroids = {}
     for l in labels:
         pos = label_colors[l]
-        centroids[l] = np.sum(pos, axis=0) / float(len(pos))
+        centroids[l] = np.sum(pos, axis=0).astype(float) / len(pos)
 
     return np.asarray(centroids.values())
 
@@ -218,16 +220,21 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
     logging.info("Centroidal Voronoi tessellation. Method: " + method)
 
     def residual(s1, s2):
-        return max(np.linalg.norm(np.asarray(s1) - np.asarray(s2), axis=0))
+        return np.mean(np.abs(np.asarray(s1) - np.asarray(s2))) / len(points)
 
     seeds = np.double(seeds)
 
     if method == "lloyd":
 
+        assert np.ndim(mask) == 3
+        l0, l1, l2 = np.shape(mask)
+
+        coords = filter(lambda (x, y, z): mask[x, y, z] != 0, product(xrange(l0), xrange(l1), xrange(l2)))
+
         assert voronoi_img is not None
         prev_seeds = seeds
         for step in xrange(int(steps)):
-            seeds = centroids(voronoi_img, labels)
+            seeds = centroids(voronoi_img, labels, coords=coords)
             res = residual(seeds, prev_seeds)
             logging.info("CVT step " + str(step) + " --> Residual:" + str(res))
             voronoi_img = voronoi(seeds, labels, mask, points, verbose=verbose, debug=debug)
