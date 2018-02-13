@@ -270,32 +270,30 @@ def centroids(img, labels, bg=0, coords=None):
     :param img: input labelled image
     :param labels:
     :param bg: background value
+    :param coords: list of point coordinates
     :return:
     """
-
-    label_colors = {}
 
     if coords is None:
         assert np.ndim(img) == 3
         l0, l1, l2 = np.shape(img)
         coords = filter(lambda (x, y, z): img[x, y, z] != bg, product(xrange(l0), xrange(l1), xrange(l2)))
 
-    for x, y, z in coords:
-        if img[x, y, z] not in label_colors:
-            label_colors[img[x, y, z]] = [[x, y, z]]
-        else:
-            label_colors[img[x, y, z]] += [[x, y, z]]
+    labels_coords = {l: [] for l in labels if l != bg}
 
-    centroids = {}
+    for x, y, z in coords:
+        labels_coords[img[x, y, z]] += [[x, y, z]]
+
+    centroids = dict(zip(labels, [None] * len(labels)))
     for l in labels:
-        pos = label_colors[l]
+        pos = labels_coords[l]
         centroids[l] = np.sum(pos, axis=0).astype(float) / len(pos)
 
-    return np.asarray(centroids.values())
+    return np.array(centroids.values())
 
 
 def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=None,
-        method="lloyd", intermediary_step=5e6, verbose=False, debug=False, save=False):
+        method="lloyd", intermediary_step=5e6, verbose=False, debug=False, save=False, threshold=1.e-9):
     """
     Centroidal Voronoi tessellation
 
@@ -327,13 +325,13 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
 
         assert np.ndim(mask) == 3
         l0, l1, l2 = np.shape(mask)
-
-        coords = filter(lambda (x, y, z): mask[x, y, z] != 0, product(xrange(l0), xrange(l1), xrange(l2)))
+        #
+        # coords = filter(lambda (x, y, z): mask[x, y, z] != 0, product(xrange(l0), xrange(l1), xrange(l2)))
 
         assert voronoi_img is not None
         prev_seeds = seeds
         for step in xrange(int(steps)):
-            seeds = centroids(voronoi_img, labels, coords=coords)
+            seeds = centroids(voronoi_img, labels, coords=points)
             res = residual(seeds, prev_seeds)
             logging.info("CVT step " + str(step) + " --> Residual:" + str(res))
             voronoi_img = voronoi(seeds, labels, mask, points, verbose=verbose, debug=debug)
@@ -343,7 +341,7 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
             if res_path is not None and save:
                 imsave(res_path, voronoi_img)
 
-            if np.isclose(0, res):  # TODO specify convergence threshold
+            if np.isclose(0, res, atol=threshold):  # TODO specify convergence threshold
                 logging.info("Lloyd algorithm converged.")
                 break
 
