@@ -7,7 +7,7 @@
 #
 #       File author(s): Hadrien Oliveri <hadrien.oliveri@inria.fr>
 #
-#       File contributor(s): Hadrien Oliveri <hadrien.oliveri@inria.fr>
+#       File contributor(s): Hadrien Oliveri <hadrien.oliveri@inria.fr>, Guillaume Cerutti <guillaume.cerutti@inria.fr>
 #
 #       Distributed under the Cecill-C License.
 #       See accompanying file LICENSE.txt or copy at
@@ -48,7 +48,7 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
     logging.info("Initializing image")
     white_image = vtkImageData()
     white_image.SetSpacing(voxelsize)
-    dim = [int(np.ceil((bounds[i * 2 + 1] - bounds[i * 2]) / voxelsize[i])) for i in range(3)]
+    dim = [int(np.ceil((bounds[i * 2 + 1] - bounds[i * 2]) / voxelsize[i])) for i in xrange(3)]
 
     # FIXME: does not work if dimensions are different
     dim = [np.amax(dim)] * 3
@@ -56,8 +56,8 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
     logging.info("Image dimension: " + str(dim))
     white_image.SetDimensions(dim)
     white_image.SetExtent(-1, dim[0] - 1, -1, dim[1] - 1, -1, dim[2] - 1)
-    origin = [bounds[i * 2] for i in range(3)]
-    # origin = [.5 *(bounds[i * 2]+bounds[i * 2 + 1]) for i in range(3)]
+    origin = [bounds[i * 2] for i in xrange(3)]
+    # origin = [.5 *(bounds[i * 2]+bounds[i * 2 + 1]) for i in xrange(3)]
 
     white_image.SetOrigin(origin)
     logging.info("Image origin: " + str(white_image.GetOrigin()))
@@ -69,7 +69,7 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
         white_image.AllocateScalars(VTK_UNSIGNED_CHAR, 1)
 
     count = white_image.GetNumberOfPoints()
-    for i in range(count):
+    for i in xrange(count):
         white_image.GetPointData().GetScalars().SetTuple1(i, 255)
 
     pol2stenc = vtkPolyDataToImageStencil()
@@ -85,7 +85,7 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
     if vtk_version < 6:
         imgstenc.SetInput(white_image)
         imgstenc.SetStencil(pol2stenc.GetOutput())
-    else:   
+    else:
         imgstenc.SetInputData(white_image)
         imgstenc.SetStencilConnection(pol2stenc.GetOutputPort())
     imgstenc.ReverseStencilOff()
@@ -101,6 +101,88 @@ def topomesh_to_binary_image(mesh, voxelsize=(.5, .5, .5), verbose=False, debug=
     assert a.shape == im.GetDimensions()
 
     return SpatialImage(a, vdim=1, dtype=np.uint16)
+
+
+def topomesh_binary_image(topomesh, size=None, voxelsize=(1,1,1), origin=[0,0,0], verbose=False, debug=False):
+
+    from vtk import VTK_MAJOR_VERSION as vtk_version
+    from vtk import vtkImageData, vtkPolyDataToImageStencil, vtkImageStencil, VTK_UNSIGNED_CHAR
+    from vtk.util.numpy_support import vtk_to_numpy
+    from openalea.cellcomplex.property_topomesh.triangular_mesh import topomesh_to_triangular_mesh
+
+    logging.getLogger().setLevel(logging.INFO if verbose else logging.DEBUG if debug else logging.ERROR)
+
+    mesh, matching = topomesh_to_triangular_mesh(topomesh, degree=3, coef=1.0, mesh_center=[0,0,0])
+    polydata = mesh._repr_vtk_()
+    bounds = polydata.GetBounds()
+
+    if origin is None:
+        origin = [bounds[i*2] for i in xrange(3)]
+
+    if size is None:
+        size = [(bounds[i*2 + 1] - origin[i]) for i in xrange(3)]
+
+    shape = [int(np.ceil(s/v)) for s,v in zip(size,voxelsize)]
+    
+    print "--> Bounds : ",bounds
+    print "--> Size : ",size
+    print "--> Shape : ",shape
+    print "--> Origin : ",origin
+
+    white_image = vtkImageData()
+    white_image.SetSpacing(voxelsize)
+    white_image.SetDimensions(shape)
+    
+    # white_image.SetExtent(origin[0], origin[0]+shape[0]*voxelsize[0], origin[1], origin[1]+shape[1]*voxelsize[1], origin[2], origin[2]+shape[2]*voxelsize[2])
+    # white_image.SetExtent(0, shape[0]*voxelsize[0], 0, shape[1]*voxelsize[1], 0, shape[2]*voxelsize[2])
+    white_image.SetExtent(0, shape[0]-1, 0, shape[1]-1, 0, shape[2]-1)
+    # white_image.SetOrigin([bounds[i*2] for i in xrange(3)])
+    # white_image.SetOrigin(origin)
+    # white_image.SetOrigin(np.array(origin) - 20.*np.array([bounds[i*2] for i in xrange(3)]))
+    if vtk_version < 6:
+        white_image.SetScalarTypeToUnsignedChar()
+        white_image.SetNumberOfScalarComponents(1)
+        white_image.AllocateScalars()
+    else:
+        white_image.AllocateScalars(VTK_UNSIGNED_CHAR, 1)
+
+    print "White image : ",white_image.GetDimensions()
+
+    count = white_image.GetNumberOfPoints()
+    for i in xrange(count):
+        white_image.GetPointData().GetScalars().SetTuple1(i, 255)
+
+    pol2stenc = vtkPolyDataToImageStencil()
+    if vtk_version < 6:
+        pol2stenc.SetInput(polydata)
+    else:
+        pol2stenc.SetInputData(polydata)
+    # pol2stenc.SetOutputOrigin(np.array(origin) - 2.*np.array([bounds[i*2] for i in xrange(3)]))
+    pol2stenc.SetOutputOrigin(origin)
+    # pol2stenc.SetOutputOrigin([bounds[i*2] for i in xrange(3)])
+    pol2stenc.SetOutputSpacing(voxelsize)
+    # pol2stenc.SetOutputWholeExtent(bounds)
+    pol2stenc.SetOutputWholeExtent(0, shape[0]-1, 0, shape[1]-1, 0, shape[2]-1)
+
+    imgstenc = vtkImageStencil()
+    if vtk_version < 6:
+        imgstenc.SetInput(white_image)
+        imgstenc.SetStencil(pol2stenc.GetOutput())
+    else:   
+        imgstenc.SetInputData(white_image)
+        imgstenc.SetStencilConnection(pol2stenc.GetOutputPort())
+    imgstenc.ReverseStencilOff()
+    imgstenc.SetBackgroundValue(0)
+    imgstenc.Update()
+
+    binary_image = imgstenc.GetOutput()
+    print "Mask image : ",binary_image.GetDimensions()
+    rows, cols, depth = binary_image.GetDimensions()
+    sc = binary_image.GetPointData().GetScalars()
+    binary_img = vtk_to_numpy(sc)
+    binary_img = np.transpose(binary_img.reshape(depth,cols,rows),(2,1,0))
+
+    return SpatialImage(binary_img.astype(np.uint16), voxelsize=voxelsize, origin=origin)
 
 
 def random_seeds(img, nb_seeds=100, density=None, points=None, replace=False, verbose=False, debug=False):
@@ -155,7 +237,7 @@ def voronoi(seeds, labels, mask=None, points=None, verbose=False, debug=False):
     if points is None:
         assert mask is not None and mask.shape == mask.shape
         points = filter(lambda p: mask[p],
-                        list(product(range(mask.shape[0]), range(mask.shape[1]), range(mask.shape[2]))))
+                        list(product(xrange(mask.shape[0]), xrange(mask.shape[1]), xrange(mask.shape[2]))))
 
     # KD tree for nearest point research
     nearest = cKDTree(data=seeds).query(points)[1]
@@ -165,36 +247,53 @@ def voronoi(seeds, labels, mask=None, points=None, verbose=False, debug=False):
     return res_img
 
 
-def centroids(img, labels, bg=0):
+def voronoi_image(seeds, labels, mask, seed_tensors=None, verbose=False, debug=False):
+    """
+    """
+    
+    voxelsize = np.array(mask.voxelsize) if hasattr(mask,'voxelsize') else np.ones(3,float)
+    
+    if seed_tensors is None:
+        seed_tensors = np.array([np.diag(np.ones(3)) for s in seeds])
+
+    points = np.transpose(np.mgrid[0:mask.shape[0],0:mask.shape[1],0:mask.shape[2]],(1,2,3,0))*voxelsize
+    seed_distances = np.array([np.power(np.einsum('...ij,...ij->...i', points-seed,np.einsum('...ij,...j->...i',np.linalg.inv(np.power(seed_tensor,2.)),points-seed)),0.5) for seed,seed_tensor in zip(seeds,seed_tensors)]) 
+    voronoi_img = ((mask!=0)*np.array(labels)[np.argmin(seed_distances,axis=0)]).astype(np.uint16)
+
+    return voronoi_img
+
+
+
+def centroids(img, labels, bg=0, coords=None):
     """
 
     :param img: input labelled image
     :param labels:
     :param bg: background value
+    :param coords: list of point coordinates
     :return:
     """
 
-    print "Computing centroids."
-    label_colors = {}
-    for x in range(len(img)):
-        for y in range(len(img[x])):
-            for z in range(len(img[x, y])):
-                if img[x, y, z] != bg:
-                    if img[x, y, z] not in label_colors:
-                        label_colors[img[x, y, z]] = [[x, y, z]]
-                    else:
-                        label_colors[img[x, y, z]] += [[x, y, z]]
+    if coords is None:
+        assert np.ndim(img) == 3
+        l0, l1, l2 = np.shape(img)
+        coords = filter(lambda (x, y, z): img[x, y, z] != bg, product(xrange(l0), xrange(l1), xrange(l2)))
 
-    centroids = {}
+    labels_coords = {l: [] for l in labels if l != bg}
+
+    for x, y, z in coords:
+        labels_coords[img[x, y, z]] += [[x, y, z]]
+
+    centroids = dict(zip(labels, [None] * len(labels)))
     for l in labels:
-        pos = label_colors[l]
-        centroids[l] = np.sum(pos, axis=0) / float(len(pos))
+        pos = labels_coords[l]
+        centroids[l] = np.sum(pos, axis=0).astype(float) / len(pos)
 
-    return np.asarray(centroids.values())
+    return np.array(centroids.values())
 
 
 def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=None,
-        method="lloyd", intermediary_step=5e6, verbose=False, debug=False, save=False):
+        method="lloyd", intermediary_step=5e6, verbose=False, debug=False, save=False, threshold=1.e-9):
     """
     Centroidal Voronoi tessellation
 
@@ -218,16 +317,21 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
     logging.info("Centroidal Voronoi tessellation. Method: " + method)
 
     def residual(s1, s2):
-        return max(np.linalg.norm(np.asarray(s1) - np.asarray(s2), axis=0))
+        return np.mean(np.abs(np.asarray(s1) - np.asarray(s2))) / len(points)
 
     seeds = np.double(seeds)
 
     if method == "lloyd":
 
+        assert np.ndim(mask) == 3
+        l0, l1, l2 = np.shape(mask)
+        #
+        # coords = filter(lambda (x, y, z): mask[x, y, z] != 0, product(xrange(l0), xrange(l1), xrange(l2)))
+
         assert voronoi_img is not None
         prev_seeds = seeds
         for step in xrange(int(steps)):
-            seeds = centroids(voronoi_img, labels)
+            seeds = centroids(voronoi_img, labels, coords=points)
             res = residual(seeds, prev_seeds)
             logging.info("CVT step " + str(step) + " --> Residual:" + str(res))
             voronoi_img = voronoi(seeds, labels, mask, points, verbose=verbose, debug=debug)
@@ -237,7 +341,7 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
             if res_path is not None and save:
                 imsave(res_path, voronoi_img)
 
-            if np.isclose(0, res):  # TODO specify convergence threshold
+            if np.isclose(0, res, atol=threshold):  # TODO specify convergence threshold
                 logging.info("Lloyd algorithm converged.")
                 break
 
@@ -270,6 +374,7 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
 
                 if np.isclose(0, res):  # TODO specify convergence threshold
                     recompute_voronoi = False
+                    logging.info("McQueen algorithm converged.")
                     break
 
         if recompute_voronoi:

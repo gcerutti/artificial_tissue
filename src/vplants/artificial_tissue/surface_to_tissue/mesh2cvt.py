@@ -42,7 +42,7 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
 
     def save_img(path, img):
         logging.info("Saving image to " + path)
-        imsave(path, voronoi_img)
+        imsave(path, img)
 
     assert os.path.exists(input), "Input file: " + input + " does not exist."
     assert method in ["lloyd", "mcqueen"], "Wrong method."
@@ -60,9 +60,9 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
     # Binarizing image
     logging.info("Rasterizing mesh to binary image.")
     mask = topomesh_to_binary_image(mesh=mesh, voxelsize=voxelsize, verbose=verbose, debug=debug)
-
     if save and output is not None: save_img(os.path.join(output, "bin.inr"), mask)
 
+    # Coordinates of voxels (without the background)
     points = filter(lambda p: mask[p], list(product(range(mask.shape[0]), range(mask.shape[1]), range(mask.shape[2]))))
 
     # Generating random seeds
@@ -76,7 +76,6 @@ def mesh_to_cvt_image(input, output='.', voxelsize=(.5, .5, .5), max_step=1e9, n
     logging.info("Initializing Voronoi diagram.")
     voronoi_img = voronoi(seeds, labels, mask=mask, points=points, verbose=verbose, debug=debug)
     if save and output is not None: save_img(os.path.join(output, "voronoi.inr"), voronoi_img)
-
 
     # Computing a centroidal Voronoi tessellation.
     logging.info("Computing a centroidal Voronoi tessellation.")
@@ -100,14 +99,14 @@ def main():
     parser.add_argument('--step', help='Maximal number of steps for CVT', default=1e9, type=int)
     parser.add_argument('-v', '--verbose', default=False, action='store_true', help='verbose')
     parser.add_argument('-d', '--debug', default=False, action='store_true', help='debug')
-    parser.add_argument('-s', '--save', default=False, action='store_true', help='save output image to file')
+    parser.add_argument('-ns', '--no_save', default=False, action='store_true', help='skip saving output image')
     parser.add_argument('--voxelsize', help='Voxel size', default=[.025, .025, .025], nargs=3, type=float)
     parser.add_argument('-m', '--method', help='Method for CVT [\'lloyd\', \'mcqueen\']', default='lloyd')
 
     args = parser.parse_args()
 
     mesh_to_cvt_image(input=args.input, output=args.output, method=args.method, verbose=args.verbose, debug=args.debug,
-        save=args.save, voxelsize=args.voxelsize, nbcells=args.nbcells, max_step=args.step)
+        save=not(args.no_save), voxelsize=args.voxelsize, nbcells=args.nbcells, max_step=args.step)
 
 if __name__ == "__main__":
     main()
