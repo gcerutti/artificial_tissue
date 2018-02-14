@@ -317,17 +317,14 @@ def cvt(mask, seeds, labels, steps=1e3, voronoi_img=None, res_path=None, points=
     logging.info("Centroidal Voronoi tessellation. Method: " + method)
 
     def residual(s1, s2):
-        return np.mean(np.abs(np.asarray(s1) - np.asarray(s2))) / len(points)
+        return np.max(np.linalg.norm((np.asarray(s1) - np.asarray(s2)) * np.array(mask.voxelsize), axis=1))\
+               / np.power(len(points) * np.prod(mask.voxelsize), 1/3.)
 
     seeds = np.double(seeds)
 
     if method == "lloyd":
 
         assert np.ndim(mask) == 3
-        l0, l1, l2 = np.shape(mask)
-        #
-        # coords = filter(lambda (x, y, z): mask[x, y, z] != 0, product(xrange(l0), xrange(l1), xrange(l2)))
-
         assert voronoi_img is not None
         prev_seeds = seeds
         for step in xrange(int(steps)):
